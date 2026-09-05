@@ -2,10 +2,11 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DISPLAY=:1
+ENV HOME=/home/codespace
 
 USER root
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     xfce4 \
     xfce4-goodies \
     xfce4-terminal \
@@ -16,54 +17,34 @@ RUN apt-get update && apt-get install -y \
     novnc \
     websockify \
     supervisor \
-    docker.io \
-    docker-compose-v2 \
+    firefox \
+    mousepad \
+    thunar-archive-plugin \
+    file-roller \
+    fonts-noto-core \
+    fonts-noto-cjk \
     curl \
     wget \
     git \
+    ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /etc/supervisor/conf.d
+RUN mkdir -p /etc/supervisor/conf.d /opt/pc-free /var/log/pc-free \
+    /home/codespace/.config/xfce4/xfconf/xfce-perchannel-xml \
+    /home/codespace/Desktop
 
-RUN cat > /etc/supervisor/conf.d/desktop.conf <<'EOF'
-[supervisord]
-nodaemon=true
-user=root
+COPY start-desktop.sh /opt/pc-free/start-desktop.sh
+COPY pc-free-status.sh /opt/pc-free/pc-free-status.sh
+COPY supervisor.conf /etc/supervisor/conf.d/pc-free.conf
+COPY xfce/xfce4-panel.xml /home/codespace/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
+COPY xfce/xsettings.xml /home/codespace/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+COPY xfce/xfwm4.xml /home/codespace/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml
+COPY desktop/README.txt /home/codespace/Desktop/README.txt
 
-[program:xvfb]
-command=/usr/bin/Xvfb :1 -screen 0 1280x720x24 -ac
-priority=10
-autorestart=true
-stdout_logfile=/var/log/xvfb.log
-stderr_logfile=/var/log/xvfb-error.log
-
-[program:xfce]
-command=/bin/bash -c "sleep 2 && su - codespace -c 'DISPLAY=:1 dbus-launch --exit-with-session startxfce4'"
-environment=DISPLAY=":1",HOME="/home/codespace",USER="codespace"
-priority=20
-autorestart=true
-stdout_logfile=/var/log/xfce.log
-stderr_logfile=/var/log/xfce-error.log
-
-[program:x11vnc]
-command=/bin/bash -c "sleep 5 && x11vnc -display :1 -forever -shared -nopw -rfbport 5900"
-priority=30
-autorestart=true
-stdout_logfile=/var/log/x11vnc.log
-stderr_logfile=/var/log/x11vnc-error.log
-
-[program:novnc]
-command=/bin/bash -c "sleep 6 && websockify --web=/usr/share/novnc/ 6080 localhost:5900"
-priority=40
-autorestart=true
-stdout_logfile=/var/log/novnc.log
-stderr_logfile=/var/log/novnc-error.log
-EOF
-
-RUN mkdir -p /home/codespace/.config/xfce4/xfconf/xfce-perchannel-xml \
-    && chown -R codespace:codespace /home/codespace
+RUN chmod +x /opt/pc-free/start-desktop.sh /opt/pc-free/pc-free-status.sh \
+    && chown -R codespace:codespace /home/codespace /opt/pc-free /var/log/pc-free
 
 EXPOSE 6080
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
