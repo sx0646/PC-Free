@@ -1,5 +1,5 @@
 {
-  "name": "PC-Free Codespace Desktop",
+  "name": "PC-Free — Browser Desktop",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "."
@@ -7,14 +7,17 @@
   "forwardPorts": [6080],
   "portsAttributes": {
     "6080": {
-      "label": "PC-Free Desktop (noVNC)",
+      "label": "🖥️ PC-Free Browser PC",
       "protocol": "http",
       "onAutoForward": "openBrowser"
     }
   },
   "containerEnv": {
-    "DISPLAY": ":1"
+    "DISPLAY": ":1",
+    "BROWSER_PC_WIDTH": "1440",
+    "BROWSER_PC_HEIGHT": "900"
   },
   "remoteUser": "codespace",
-  "overrideCommand": false
+  "overrideCommand": false,
+  "shutdownAction": "stopContainer"
 }
